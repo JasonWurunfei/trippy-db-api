@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 
-from pydantic.utils import sequence_like
 
 class CarRental(BaseModel):
     id: int
