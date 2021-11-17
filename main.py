@@ -11,7 +11,8 @@ from db_utils import (
     get_packages_by_username,
     create_order,
     delete_order,
-    validate_user_password
+    validate_user_password,
+    db_get_packages_by_destination
 )
 from data import Order
 
@@ -27,6 +28,10 @@ class UserForm(BaseModel):
 async def company_info():
     return {"info": db_get_info("company_info")}
 
+@app.get("/info/contact")
+async def company_info():
+    return {"contact": db_get_info("company_contact")}
+
 @app.get("/package/popular")
 async def popular_packages():
     return {"packages": db_get_popular_packages()}
@@ -35,14 +40,18 @@ async def popular_packages():
 async def query_packages_by_country(country: str):
     return {"packages": db_get_packages_by_country(country)}
 
+@app.get("/package/destination")
+async def query_packages_by_destination(destination: str):
+    return {"packages": db_get_packages_by_destination(destination)}
+
 @app.get("/guide/change")
 async def change_guide(old_guide_name: str):
     return {"new_guide": get_available_guide(old_guide_name)}
 
 @app.get("/restaurant/available")
-async def change_guide(destination: str, old_restaurant_name: str):
+async def change_restaurant(destination: str, old_restaurant_name: str):
     return {
-        "newGuide": get_nearest_restaurant(
+        "newRestaurant": get_nearest_restaurant(
                         destination,
                         old_restaurant_name
                     )

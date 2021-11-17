@@ -107,6 +107,19 @@ def db_get_packages_by_country(country: str) -> List[Package]:
             packages.append(obj)
         return packages
 
+def db_get_packages_by_destination(destination: str) -> List[Package]:
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT * FROM 'package' where destination=:destination
+        """, {"destination": destination})
+
+        packages = []
+        for res in cur.fetchall():
+            obj = tuple_to_dataclass(res, Package)
+            set_package_attachment(obj, cur)
+            packages.append(obj)
+        return packages
 
 def db_get_hotels_by_destination(destination: str) -> List[Hotel]:
     with sqlite3.connect(DB_PATH) as conn:

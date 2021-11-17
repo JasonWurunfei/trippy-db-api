@@ -51,6 +51,7 @@ class Package(BaseModel):
     hotel_id: Optional[int] = None
     guide_id: Optional[int] = None
     car_rental_id: Optional[int] = None
+    pic_url: str
 
     hotel: Optional[Hotel] = None
     guide: Optional[Guide] = None
