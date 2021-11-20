@@ -1,5 +1,6 @@
 import sqlite3
-from fastapi import FastAPI, status, Response
+from typing import List, Optional
+from fastapi import FastAPI, status, Response, Query
 from pydantic.main import BaseModel
 from db_utils import (
     db_get_info, 
@@ -12,7 +13,15 @@ from db_utils import (
     create_order,
     delete_order,
     validate_user_password,
-    db_get_packages_by_destination
+    db_get_packages_by_destination,
+    get_available_hotel,
+    get_available_flight,
+    get_user,
+    get_user_order,
+    change_user_guide,
+    change_user_hotel,
+    change_user_flight,
+    get_package_id_by_destination,
 )
 from data import Order
 
@@ -33,8 +42,10 @@ async def company_info():
     return {"contact": db_get_info("company_contact")}
 
 @app.get("/package/popular")
-async def popular_packages():
-    return {"packages": db_get_popular_packages()}
+async def popular_packages(batch: Optional[int] = 4, showed_package_ids: Optional[List[int]] = Query(None)):
+    if showed_package_ids is None:
+        showed_package_ids = []
+    return {"packages": db_get_popular_packages(batch, showed_package_ids)}
 
 @app.get("/package/country")
 async def query_packages_by_country(country: str):
@@ -44,18 +55,40 @@ async def query_packages_by_country(country: str):
 async def query_packages_by_destination(destination: str):
     return {"packages": db_get_packages_by_destination(destination)}
 
-@app.get("/guide/change")
-async def change_guide(old_guide_name: str):
-    return {"new_guide": get_available_guide(old_guide_name)}
+@app.get("/guide/available")
+async def available_guide(undesired_guide_ids: Optional[List[int]] = Query(None)):
+    if undesired_guide_ids is None:
+        undesired_guide_ids = []
+    return {"new_guide": get_available_guide(undesired_guide_ids)}
+
+@app.get("/hotel/available")
+async def available_hotel(destination: str, undesired_hotel_ids: Optional[List[int]] = Query(None)):
+    if undesired_hotel_ids is None:
+        undesired_hotel_ids = []
+    return {"new_hotel": get_available_hotel(destination, undesired_hotel_ids)}
+
+@app.get("/flight/available")
+async def available_flight(undesired_flight_ids: Optional[List[int]] = Query(None)):
+    if undesired_flight_ids is None:
+        undesired_flight_ids = []
+    return {"new_flight": get_available_flight(undesired_flight_ids)}
 
 @app.get("/restaurant/available")
 async def change_restaurant(destination: str, old_restaurant_name: str):
     return {
-        "newRestaurant": get_nearest_restaurant(
+        "new_restaurant": get_nearest_restaurant(
                         destination,
                         old_restaurant_name
                     )
     }
+
+@app.get("/user/checkname")
+async def check_username(username: str):
+    user = get_user(username)
+    if user:
+        return {'result': False}
+    else:
+        return {'result': True}
 
 @app.post("/user/register", status_code=status.HTTP_201_CREATED)
 async def register(form: UserForm, response: Response):
@@ -76,7 +109,37 @@ async def login(form: UserForm, response: Response):
 
 @app.get("/user/orders")
 async def get_user_packages(username: str):
-    return get_packages_by_username(username)
+    return {'packages': get_packages_by_username(username)}
+
+@app.put("/user/order/guide")
+async def change_order_guide(username: str, destination: str, response: Response):
+    order = get_user_order(username, destination)
+    if order:
+        new_guide = change_user_guide(order)
+        return {'message': "change success", 'new_guide': new_guide}
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {'error': f"User '{username}' does not have order to {destination}."}
+
+@app.put("/user/order/flight")
+async def change_order_flight(username: str, destination: str, flight_id: int, response: Response):
+    order = get_user_order(username, destination)
+    if order:
+        new_flight = change_user_flight(order, flight_id)
+        return {'message': "change success", 'new_flight': new_flight}
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {'error': f"User '{username}' does not have order to {destination}."}
+
+@app.put("/user/order/hotel")
+async def change_order_hotel(username: str, destination: str, hotel_id: int, response: Response):
+    order = get_user_order(username, destination)
+    if order:
+        new_hotel = change_user_hotel(order, hotel_id)
+        return {'message': "change success", 'new_hotel': new_hotel}
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {'error': f"User '{username}' does not have order to {destination}."}
 
 @app.post("/order", status_code=status.HTTP_201_CREATED)
 async def create_user_order(order: Order, response: Response):
@@ -88,7 +151,8 @@ async def create_user_order(order: Order, response: Response):
         return {'error': f"user {order.username}\'s order already exists!"}
 
 @app.delete("/order/cancel")
-async def cancel_order(username: str, package_id: int, response: Response):
+async def cancel_order(username: str, destination: str, response: Response):
+    package_id = get_package_id_by_destination(destination)
     if delete_order(username, package_id):
         return {'message': f"Cancel successfully"}
     else:

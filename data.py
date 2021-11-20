@@ -87,3 +87,13 @@ class User(BaseModel):
 class Order(BaseModel):
     username: str
     package_id: int
+    guide_id: Optional[int] = 1
+    hotel_id: Optional[int] = 1
+    flight_id: Optional[int] = 1
+
+
+class Flight(BaseModel):
+    id: int
+    airline: str
+    departure_port: int
+    departure_time: str
