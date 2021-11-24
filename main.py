@@ -53,7 +53,7 @@ async def query_packages_by_country(country: str):
 
 @app.get("/package/destination")
 async def query_packages_by_destination(destination: str):
-    return {"packages": db_get_packages_by_destination(destination)}
+    return {"package": db_get_packages_by_destination(destination)}
 
 @app.get("/guide/available")
 async def available_guide(undesired_guide_ids: Optional[List[int]] = Query(None)):
